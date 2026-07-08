@@ -353,6 +353,20 @@ describe('photon adapter (mocked SDK)', () => {
     await adapter.teardown();
   });
 
+  it('tolerates a bare string outbound content', async () => {
+    const { sdk, sends } = makeFakeSdk();
+    const host = makeHostConfig();
+    const adapter = createPhotonAdapter(
+      { projectId: 'p', projectSecret: 's', markdown: true, telemetry: false, maxInlineAttachmentBytes: 1000 },
+      { loadSpectrum: async () => sdk },
+    );
+    await adapter.setup(host.config);
+    await adapter.deliver('+15551112222', null, { kind: 'chat', content: 'just a string' });
+    expect(sends).toHaveLength(1);
+    expect(sends[0].builder.payload).toBe('just a string');
+    await adapter.teardown();
+  });
+
   it('sends plain text when markdown is disabled', async () => {
     const { sdk, sends } = makeFakeSdk();
     const host = makeHostConfig();

@@ -581,7 +581,11 @@ export function createPhotonAdapter(config: PhotonConfig, deps: { loadSpectrum?:
 
     async deliver(platformId: string, _threadId: string | null, message: OutboundMessage): Promise<string | undefined> {
       if (!sdk) return undefined;
-      const content = message.content as Record<string, unknown>;
+      // Delivery normally passes an object; tolerate a bare string too.
+      if (typeof message.content === 'string') {
+        return message.content ? deliverText(platformId, message.content) : undefined;
+      }
+      const content = (message.content ?? {}) as Record<string, unknown>;
 
       // ask_user_question → text + slash-command replies (no iMessage buttons).
       if (content.type === 'ask_question' && content.questionId && content.options) {
