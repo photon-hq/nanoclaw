@@ -76,7 +76,7 @@ For ad-hoc queries from skills or scripts, use the in-tree wrapper rather than t
 | `src/backfill-container-configs.ts` | Migrates legacy `container.json` files into the DB on startup |
 | `src/container-restart.ts` | Kill + on-wake respawn for agent group containers |
 | `src/db/` | DB layer — agent_groups, messaging_groups, sessions, container_configs, user_roles, user_dms, pending_*, migrations |
-| `src/channels/` | Channel adapter infra (registry, Chat SDK bridge); specific channel adapters are skill-installed from the `channels` branch |
+| `src/channels/` | Channel adapter infra (registry, Chat SDK bridge). Ships `cli` (always-on) + `photon` (first-party native iMessage adapter, dormant until creds); other channel adapters are skill-installed from the `channels` branch |
 | `src/providers/` | Host-side provider container-config (`claude` baked in; `opencode` etc. installed from the `providers` branch) |
 | `container/agent-runner/src/` | Agent-runner: poll loop, formatter, provider abstraction, MCP tools, destinations |
 | `container/skills/` | Container skills mounted into every agent session (`agent-browser`, `frontend-engineer`, `onecli-gateway`, `self-customize`, `slack-formatting`, `vercel-cli`, `welcome`, `whatsapp-formatting`) |
@@ -113,8 +113,9 @@ Key files: `src/cli/dispatch.ts` (dispatcher + approval handler), `src/cli/crud.
 
 ## Channels and Providers (skill-installed)
 
-Trunk does not ship any specific channel adapter or non-default agent provider. The codebase is the registry/infra; the actual adapters and providers live on long-lived sibling branches and get copied in by skills:
+Trunk ships two first-party channels — `cli` (always-on local terminal) and `photon` (native iMessage via Photon's `spectrum-ts` gRPC stream, `src/channels/photon.ts`, dormant until `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET` exist). It ships no non-default agent provider. Otherwise the codebase is the registry/infra; the additional adapters and providers live on long-lived sibling branches and get copied in by skills:
 
+- **First-party (in trunk)** — `photon` (iMessage). Enable with `/add-photon`, which installs the pinned `spectrum-ts` SDK and runs the `scripts/photon-setup.ts` device-login wizard (auto-provisions project, secret, phone user, and iMessage line). See [docs/photon.md](docs/photon.md).
 - **`channels` branch** — Discord, Slack, Telegram, WhatsApp, Teams, Linear, GitHub, iMessage, Webex, Resend, Matrix, Google Chat, WhatsApp Cloud, Signal, WeChat, DeltaChat, Emacs (+ helpers, tests, channel-specific setup steps). Installed via `/add-<channel>` skills.
 - **`providers` branch** — OpenCode (and any future non-default agent providers). Installed via `/add-opencode`.
 
@@ -187,6 +188,7 @@ Four types of skills. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full taxono
 | Skill | When to Use |
 |-------|-------------|
 | `/setup` | First-time install, auth, service config |
+| `/add-photon` | Enable the first-party iMessage channel — installs `spectrum-ts` + runs the device-login setup wizard (auto-provisions project, secret, phone, line) |
 | `/init-first-agent` | Bootstrap the first DM-wired agent (channel pick → identity → wire → welcome DM) |
 | `/manage-channels` | Wire channels to agent groups with isolation level decisions |
 | `/customize` | Adding channels, integrations, behavior changes |
@@ -271,6 +273,7 @@ This project uses pnpm with `minimumReleaseAge: 4320` (3 days) in `pnpm-workspac
 | [docs/db-session.md](docs/db-session.md) | Per-session `inbound.db` + `outbound.db` schemas + seq parity |
 | [docs/agent-runner-details.md](docs/agent-runner-details.md) | Agent-runner internals + MCP tool interface |
 | [docs/isolation-model.md](docs/isolation-model.md) | Three-level channel isolation model |
+| [docs/photon.md](docs/photon.md) | First-party Photon (iMessage) channel — architecture, setup wizard, config, upgrading `spectrum-ts` |
 | [docs/setup-wiring.md](docs/setup-wiring.md) | What's wired, what's open in the setup flow |
 | [docs/architecture-diagram.md](docs/architecture-diagram.md) | Diagram version of the architecture |
 | [docs/build-and-runtime.md](docs/build-and-runtime.md) | Runtime split (Node host + Bun container), lockfiles, image build surface, CI, key invariants |
